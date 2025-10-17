@@ -139,14 +139,24 @@ def handle_client(conn, addr):
 
 def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Dòng này giúp tái sử dụng địa chỉ ngay, hữu ích khi bạn tắt/mở server liên tục
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((HOST, PORT))
     server_socket.listen()
     print(f"Server is listening on {HOST}:{PORT}")
 
-    while True:
-        conn, addr = server_socket.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
+    try:
+        while True:
+            conn, addr = server_socket.accept()
+            thread = threading.Thread(target=handle_client, args=(conn, addr))
+            thread.daemon = True
+            thread.start()
+    except KeyboardInterrupt:
+        print("\nServer is shutting down...")
+    finally:
+        # Khối này luôn được thực thi, đảm bảo socket được đóng
+        server_socket.close()
+        print("Server has been closed.")
 
 if __name__ == "__main__":
     main()

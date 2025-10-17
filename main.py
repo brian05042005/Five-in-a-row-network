@@ -1,4 +1,4 @@
-﻿# File: caro_game.py
+﻿# File: main.py
 import random
 
 class CaroGame:
@@ -23,11 +23,49 @@ class CaroGame:
         for row in self.board:
             for i in range(len(self.board)):
                 row[i] = 0
+    
+    def check_win_and_get_line(self, last_y, last_x):
+        """
+        Kiểm tra xem nước đi cuối cùng tại (last_y, last_x) có tạo ra một dãy 5 quân không.
+        Nếu có, trả về (tên người thắng, (tọa độ bắt đầu, tọa độ kết thúc)).
+        Nếu không, trả về (None, None).
+        """
+        player_id = self.board[last_y][last_x]
+        if player_id == 0:
+            return None, None
 
-    # ===================================================================
-    # CÁC HÀM KIỂM TRA LOGIC (is_win, is_in, ...)
-    # Tất cả các hàm này được chuyển từ file main.py cũ vào đây.
-    # ===================================================================
+        # Các hướng để kiểm tra: ngang, dọc, chéo chính, chéo phụ
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+
+        for dy, dx in directions:
+            line = [(last_y, last_x)]
+            
+            # Đếm về một phía
+            for i in range(1, 5):
+                y, x = last_y + i * dy, last_x + i * dx
+                if self.is_in(y, x) and self.board[y][x] == player_id:
+                    line.append((y, x))
+                else:
+                    break
+            
+            # Đếm về phía ngược lại
+            for i in range(1, 5):
+                y, x = last_y - i * dy, last_x - i * dx
+                if self.is_in(y, x) and self.board[y][x] == player_id:
+                    line.append((y, x))
+                else:
+                    break
+            
+            # Nếu đủ 5 hoặc nhiều hơn, trả về kết quả
+            if len(line) >= 5:
+                line.sort()
+                start_pos = line[0]
+                end_pos = line[-1]
+                winner = 'O won' if player_id == 1 else 'X won'
+                return winner, (start_pos, end_pos)
+
+        return None, None
+
 
     def is_in(self, y, x):
         """Kiểm tra tọa độ có nằm trong bàn cờ không."""
@@ -40,28 +78,9 @@ class CaroGame:
           return False
       return True
 
-    def is_win(self):
-        """Kiểm tra trạng thái bàn cờ (X thắng/ O thắng/ đang tiếp tục chơi)."""
-        black_O = self.score_of_col(self.board, 1)
-        white_X = self.score_of_col(self.board, 2)
-
-        self.sum_sumcol_values(black_O)
-        self.sum_sumcol_values(white_X)
-
-        if 5 in black_O and black_O[5] == 1:
-            return 'O won'
-        elif 5 in white_X and white_X[5] == 1:
-            return 'X won'
-
-        if sum(black_O.values()) == black_O[-1] and sum(white_X.values()) == white_X[-1] or self.possible_moves(self.board) == []:
-            return 'Draw'
-        return 'continue playing'
-
     # ===================================================================
-    # THUẬT TOÁN AI (best_move và các hàm hỗ trợ)
-    # Toàn bộ khối AI được chuyển vào đây.
+    # CÁC HÀM CỦA AI (giữ nguyên, không thay đổi)
     # ===================================================================
-
     def march(self, board, y, x, dy, dx, length):
         yf = y + length * dy
         xf = x + length * dx
@@ -148,11 +167,11 @@ class CaroGame:
             dy, dx = direction
             for coord in taken:
                 y, x = coord
-                for length in [1, 2, 3, 4]:
+                for length in range(1, 5):
                     move = self.march(board, y, x, dy, dx, length)
                     if move not in taken and move not in cord:
                         cord[move] = False
-        return cord
+        return list(cord.keys())
 
     def TF34score(self, score3, score4):
         for key4 in score4:
@@ -195,7 +214,6 @@ class CaroGame:
         return 0
 
     def best_move(self, col):
-        """Trả lại nước đi tốt nhất cho quân cờ `col`."""
         if col == 2:
             anticol = 1
         else:
